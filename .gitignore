@@ -5,3 +5,5 @@ __pycache__/
 *.onnx
 *.h5
 dist/
+.venv
+.vscode/
