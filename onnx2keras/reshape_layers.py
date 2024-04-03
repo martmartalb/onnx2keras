@@ -375,13 +375,45 @@ def convert_squeeze(node, params, layers, lambda_func, node_name, keras_name):
 
     input_0 = ensure_tf_type(layers[node.input[0]], name="%s_const" % keras_name)
 
-    def target_layer(x, axis=params['axes'][0]):
-        from tensorflow import keras
-        return keras.backend.squeeze(x, axis)
+    # --------------------------------------------------------------------
+    # Option 1: it does not work for new version of torch
+    # def target_layer(x, axis=params['axes'][0]):
+    #     from tensorflow import keras
+    #     return keras.backend.squeeze(x, axis)
 
-    lambda_layer = keras.layers.Lambda(target_layer, name=keras_name)
-    layers[node_name] = lambda_layer(input_0)
-    lambda_func[keras_name] = target_layer
+    # lambda_layer = keras.layers.Lambda(target_layer, name=keras_name)
+    # layers[node_name] = lambda_layer(input_0)
+    # lambda_func[keras_name] = target_layer
+
+    # --------------------------------------------------------------------
+    # Option 2
+    # if 'axes' not in params.keys():
+    #     axis = [i for i, dim in enumerate(input_0.shape) if dim == 1]
+    # else:
+    #     axis = params['axes'][0]
+
+    # def target_layer(x, axis=axis):
+    #     import tensorflow as tf
+    #     return tf.squeeze(x, axis)
+
+    # lambda_layer = keras.layers.Lambda(target_layer, name=keras_name)
+    # layers[node_name] = lambda_layer(input_0)
+    # lambda_func[keras_name] = target_layer
+
+    # --------------------------------------------------------------------
+    # Option 3
+    # layers[node_name] = keras.layers.Flatten()(input_0)
+
+    # --------------------------------------------------------------------
+    # Option 4
+    target_shape = input_0.shape[1::]
+    if 'axes' not in params.keys():
+        target_shape = list(filter(lambda x: x != 1, target_shape))
+    else:
+        for i in params['axes']:
+            if target_shape[i] == 1:
+                del target_shape[i]
+    layers[node_name] = keras.layers.Reshape(target_shape)(input_0)
 
 
 def convert_expand(node, params, layers, lambda_func, node_name, keras_name):
